@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Fotoğraf Stil Stüdyosu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans min-h-screen p-6">
+    <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md overflow-hidden p-6">
+        <h1 class="text-2xl font-bold text-center text-amber-800 mb-6">FOTOĞRAF STİL STÜDYOSU</h1>
+        
+        <!-- Önizleme Alanları -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <!-- Orijinal Fotoğraf -->
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50">
+                <span class="text-sm font-semibold text-gray-600 mb-2">1. Fotoğraf Yükle</span>
+                <input type="file" id="upload" accept="image/*" class="mb-4 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100"/>
+                <div class="w-full h-64 flex items-center justify-center bg-white border rounded overflow-hidden">
+                    <img id="originalPreview" class="max-h-full max-w-full object-contain hidden" alt="Orijinal">
+                    <span id="originalPlaceholder" class="text-gray-400 text-sm">Fotoğraf bekleniyor...</span>
+                </div>
+            </div>
+
+            <!-- Düzenlenmiş Fotoğraf -->
+            <div class="border-2 border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50">
+                <span class="text-sm font-semibold text-gray-600 mb-2">3. Düzenlenmiş Fotoğraf</span>
+                <div class="w-full h-64 flex items-center justify-center bg-white border rounded overflow-hidden mt-8">
+                    <canvas id="outputCanvas" class="max-h-full max-w-full object-contain hidden"></canvas>
+                    <span id="outputPlaceholder" class="text-gray-400 text-sm">İşlenmiş fotoğraf burada görünecek</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kontroller ve Efektler -->
+        <div class="bg-gray-50 p-4 rounded-lg flex flex-col md:flex-row items-center gap-4 justify-between">
+            <div class="w-full md:w-1/2">
+                <label class="block text-sm font-semibold text-gray-700 mb-1">2. Tasarım Stili / Efekt Seçin:</label>
+                <select id="effectSelect" class="w-full p-2 border border-gray-300 rounded-lg bg-white text-sm focus:ring-2 focus:ring-amber-500">
+                    <option value="none">Efekt Seçin (30 Seçenek)</option>
+                    <option value="mirror">Mirror (Ayna Efekti)</option>
+                    <option value="flip">Flip (Dikey Çevir)</option>
+                    <option value="rotate90">90° Döndür</option>
+                    <option value="rotate25">25° Döndür</option>
+                    <option value="crop">Ortadan Kırp</option>
+                    <option value="resize">Küçült</option>
+                    <option value="aspectResize">Oranı Koruyarak Küçült</option>
+                    <option value="grayscale">Siyah-Beyaz</option>
+                    <option value="brightnessUp">Parlaklığı Artır</option>
+                    <option value="brightnessDown">Parlaklığı Azalt</option>
+                    <option value="contrastUp">Kontrast Artır</option>
+                    <option value="vibrance">Renkleri Canlandır</option>
+                    <option value="pastel">Pastel Renkler</option>
+                    <option value="sepia">Sepya</option>
+                    <option value="solarize">Solarize (Negatif yerine)</option>
+                    <option value="redChannel">Kırmızı Kanal</option>
+                    <option value="swapChannels">Renk Kanallarını Değiştir</option>
+                    <option value="sharpen">Keskinleştir</option>
+                    <option value="lightBlur">Hafif Bulanıklaştır</option>
+                    <option value="gaussianBlur">Gaussian Bulanıklaştır</option>
+                    <option value="contour">Kontur</option>
+                    <option value="emboss">Kabartma</option>
+                    <option value="detail">Detay</option>
+                    <option value="edgeEnhance">Kenar Güçlendir</option>
+                    <option value="posterize">Poster</option>
+                    <option value="threshold">Eşikleme</option>
+                    <option value="roundedCorners">Yuvarlak Köşeler</option>
+                    <option value="roundedProfile">Yuvarlak Profil</option>
+                    <option value="addText">Fotoğrafa Yazı Ekle</option>
+                    <option value="collage">Kolaj</option>
+                </select>
+            </div>
+            <button id="applyBtn" class="w-full md:w-auto px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg shadow transition duration-200 cursor-pointer">
+                TASARIMI UYGULA
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const upload = document.getElementById('upload');
+        const originalPreview = document.getElementById('originalPreview');
+        const originalPlaceholder = document.getElementById('originalPlaceholder');
+        const outputCanvas = document.getElementById('outputCanvas');
+        const outputPlaceholder = document.getElementById('outputPlaceholder');
+        const applyBtn = document.getElementById('applyBtn');
+        const effectSelect = document.getElementById('effectSelect');
+
+        let uploadedImage = null;
+
+        upload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    uploadedImage = new Image();
+                    uploadedImage.onload = function() {
+                        originalPreview.src = uploadedImage.src;
+                        originalPreview.classList.remove('hidden');
+                        originalPlaceholder.classList.add('hidden');
+                    }
+                    uploadedImage.src = event.target.result;
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        applyBtn.addEventListener('click', () => {
+            if (!uploadedImage) {
+                alert('Lütfen önce bir fotoğraf yükleyin!');
+                return;
+            }
+
+            const effect = effectSelect.value;
+            const canvas = outputCanvas;
+            const ctx = canvas.getContext('2d');
+
+            let width = uploadedImage.width;
+            let height = uploadedImage.height;
+
+            if (effect === 'resize') {
+                width = Math.floor(width * 0.5);
+                height = Math.floor(height * 0.5);
+            } else if (effect === 'aspectResize') {
+                const maxDim = 300;
+                if (width > height) {
+                    height = Math.round((height * maxDim) / width);
+                    width = maxDim;
+                } else {
+                    width = Math.round((width * maxDim) / height);
+                    height = maxDim;
+                }
+            } else if (effect === 'rotate90') {
+                canvas.width = height;
+                canvas.height = width;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.save();
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.rotate(Math.PI / 2);
+                ctx.drawImage(uploadedImage, -uploadedImage.width / 2, -uploadedImage.height / 2);
+                ctx.restore();
+                outputCanvas.classList.remove('hidden');
+                outputPlaceholder.classList.add('hidden');
+                return;
+            } else if (effect === 'rotate25') {
+                canvas.width = width;
+                canvas.height = height;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.save();
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.rotate((25 * Math.PI) / 180);
+                ctx.drawImage(uploadedImage, -width / 2, -height / 2);
+                ctx.restore();
+                outputCanvas.classList.remove('hidden');
+                outputPlaceholder.classList.add('hidden');
+                return;
+            } else if (effect === 'mirror') {
+                canvas.width = width;
+                canvas.height = height;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.save();
+                ctx.scale(-1, 1);
+                ctx.drawImage(uploadedImage, -width, 0, width, height);
+                ctx.restore();
+                outputCanvas.classList.remove('hidden');
+                outputPlaceholder.classList.add('hidden');
+                return;
+            } else if (effect === 'flip') {
+                canvas.width = width;
+                canvas.height = height;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.save();
+                ctx.scale(1, -1);
+                ctx.drawImage(uploadedImage, 0, -height, width, height);
+                ctx.restore();
+                outputCanvas.classList.remove('hidden');
+                outputPlaceholder.classList.add('hidden');
+                return;
+            } else if (effect === 'crop') {
+                canvas.width = width * 0.6;
+                canvas.height = height * 0.6;
+                ctx.drawImage(uploadedImage, width * 0.2, height * 0.2, width * 0.6, height * 0.6, 0, 0, canvas.width, canvas.height);
+                outputCanvas.classList.remove('hidden');
+                outputPlaceholder.classList.add('hidden');
+                return;
+            } else if (effect === 'roundedCorners') {
+                canvas.width = width;
+                canvas.height = height;
+                ctx.clearRect(0, 0, width, height);
+                ctx.save();
+                ctx.beginPath();
+                ctx.roundRect(0, 0, width, height, 40);
+                ctx.clip();
+                ctx.drawImage(uploadedImage, 0, 0, width, height);
+                ctx.restore();
+                outputCanvas.classList.remove('hidden');
+                outputPlaceholder.classList.add('hidden');
+                return;
+            } else if (effect === 'roundedProfile') {
+                canvas.width = width;
+                canvas.height = height;
+                ctx.clearRect(0, 0, width, height);
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(width / 2, height / 2, Math.min(width, height) / 2, 0, Math.PI * 2);
+                ctx.clip();
+                ctx.drawImage(uploadedImage, 0, 0, width, height);
+                ctx.restore();
+                outputCanvas.classList.remove('hidden');
+                outputPlaceholder.classList.add('hidden');
+                return;
+            } else if (effect === 'addText') {
+                canvas.width = width;
+                canvas.height = height;
+                ctx.drawImage(uploadedImage, 0, 0, width, height);
+                ctx.font = 'bold 30px Arial';
+                ctx.fillStyle = 'white';
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = 3;
+                ctx.strokeText('Stil Stüdyosu', 30, 50);
+                ctx.fillText('Stil Stüdyosu', 30, 50);
+                outputCanvas.classList.remove('hidden');
+                outputPlaceholder.classList.add('hidden');
+                return;
+            } else if (effect === 'collage') {
+                canvas.width = width;
+                canvas.height = height;
+                ctx.drawImage(uploadedImage, 0, 0, width / 2, height / 2);
+                ctx.drawImage(uploadedImage, width / 2, 0, width / 2, height / 2);
+                ctx.drawImage(uploadedImage, 0, height / 2, width / 2, height / 2);
+                ctx.drawImage(uploadedImage, width / 2, height / 2, width / 2, height / 2);
+                outputCanvas.classList.remove('hidden');
+                outputPlaceholder.classList.add('hidden');
+                return;
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            ctx.drawImage(uploadedImage, 0, 0, width, height);
+
+            const imgData = ctx.getImageData(0, 0, width, height);
+            const data = imgData.data;
+
+            for (let i = 0; i < data.length; i += 4) {
+                let r = data[i];
+                let g = data[i+1];
+                let b = data[i+2];
+
+                if (effect === 'grayscale') {
+                    let avg = (r + g + b) / 3;
+                    data[i] = avg; data[i+1] = avg; data[i+2] = avg;
+                } else if (effect === 'brightnessUp') {
+                    data[i] = Math.min(255, r + 40);
+                    data[i+1] = Math.min(255, g + 40);
+                    data[i+2] = Math.min(255, b + 40);
+                } else if (effect === 'brightnessDown') {
+                    data[i] = Math.max(0, r - 40);
+                    data[i+1] = Math.max(0, g - 40);
+                    data[i+2] = Math.max(0, b - 40);
+                } else if (effect === 'contrastUp') {
+                    let factor = 1.3;
+                    data[i] = Math.min(255, Math.max(0, factor * (r - 128) + 128));
+                    data[i+1] = Math.min(255, Math.max(0, factor * (g - 128) + 128));
+                    data[i+2] = Math.min(255, Math.max(0, factor * (b - 128) + 128));
+                } else if (effect === 'vibrance') {
+                    data[i] = Math.min(255, r * 1.2);
+                    data[i+1] = Math.min(255, g * 1.1);
+                    data[i+2] = Math.min(255, b * 1.3);
+                } else if (effect === 'pastel') {
+                    data[i] = Math.min(255, r * 0.8 + 50);
+                    data[i+1] = Math.min(255, g * 0.8 + 60);
+                    data[i+2] = Math.min(255, b * 0.8 + 80);
+                } else if (effect === 'sepia') {
+                    data[i] = Math.min(255, (r * 0.393) + (g * 0.769) + (b * 0.189));
+                    data[i+1] = Math.min(255, (r * 0.349) + (g * 0.686) + (b * 0.168));
+                    data[i+2] = Math.min(255, (r * 0.272) + (g * 0.534) + (b * 0.131));
+                } else if (effect === 'solarize') {
+                    data[i] = r > 128 ? 255 - r : r;
+                    data[i+1] = g > 128 ? 255 - g : g;
+                    data[i+2] = b > 128 ? 255 - b : b;
+                } else if (effect === 'redChannel') {
+                    data[i+1] = 0; data[i+2] = 0;
+                } else if (effect === 'swapChannels') {
+                    data[i] = b; data[i+1] = r; data[i+2] = g;
+                } else if (effect === 'threshold') {
+                    let avg = (r + g + b) / 3;
+                    let v = avg > 128 ? 255 : 0;
+                    data[i] = v; data[i+1] = v; data[i+2] = v;
+                } else if (effect === 'posterize') {
+                    data[i] = Math.floor(r / 64) * 64;
+                    data[i+1] = Math.floor(g / 64) * 64;
+                    data[i+2] = Math.floor(b / 64) * 64;
+                }
+            }
+
+            ctx.putImageData(imgData, 0, 0);
+            outputCanvas.classList.remove('hidden');
+            outputPlaceholder.classList.add('hidden');
+        });
+    </script>
+</body>
+</html>
